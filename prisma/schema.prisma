@@ -1,0 +1,583 @@
+// Prumo — database source of truth (agents.md §10)
+// Conventions: money values in cents; ISO dates (UTC); identifiers in English.
+// User-facing strings (slugs, messages, seed content) stay pt-BR.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  MENTOR
+  ADMIN
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+  TEAM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+}
+
+enum CourseStatus {
+  PUBLISHED
+  DRAFT
+}
+
+enum CourseMentorRole {
+  AUTHOR
+  COAUTHOR
+}
+
+enum LessonType {
+  VIDEO
+  QUIZ
+  MATERIAL
+  TEXT
+}
+
+enum ContentStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+}
+
+enum MaterialType {
+  PDF
+  SPREADSHEET
+  TEMPLATE
+  EBOOK
+  CHECKLIST
+  PRESENTATION
+}
+
+enum ThreadStatus {
+  PUBLISHED
+  PENDING
+  HIDDEN
+}
+
+enum ReportStatus {
+  IN_ANALYSIS
+  RESOLVED
+}
+
+enum ReportDecision {
+  REMOVE
+  IGNORE
+  BAN_AUTHOR
+}
+
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+}
+
+enum MenuLocation {
+  HEADER
+  FOOTER
+}
+
+enum MenuItemType {
+  PAGE
+  CTA
+  LINK
+}
+
+enum MentorProfileStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  // Null for accounts created via social login (Google/Apple) without a password.
+  passwordHash    String?
+  role            Role     @default(STUDENT)
+  active          Boolean  @default(true)
+  // Social login provider ids (unique per provider, set when linked/created).
+  googleId        String?  @unique
+  appleId         String?  @unique
+  // Mentor profile fields (CMS §7.5)
+  bio             String?
+  // Private-S3 object key for the user's own avatar (Opção A: banco guarda só a chave).
+  avatarKey       String?
+  areas           String[] @default([])
+  mentorFeatured  Boolean  @default(false)
+  mentorStatus    MentorProfileStatus @default(PENDING)
+  lastAccessAt    DateTime?
+  notifLives      Boolean  @default(true)
+  notifCommunity  Boolean  @default(true)
+  notifSummary    Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  invoices        Invoice[]
+  refreshTokens   RefreshToken[]
+  passwordResets  PasswordResetToken[]
+  subscription    Subscription?
+  mentoring       CourseMentor[]
+  enrollments     Enrollment[]
+  lessonProgress  LessonProgress[]
+  threads         Thread[]
+  replies         Reply[]
+  reactions       Reaction[]
+  reportsMade     Report[]             @relation("ReportReporter")
+  testimonials    Testimonial[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  // Rotation with reuse detection: tokens of the same session share the family.
+  familyId  String
+  deviceId  String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Plan {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  // Team = "on request" → null price.
+  priceCents Int?
+  cycle     BillingCycle
+  benefits  String[]     @default([])
+  featured  Boolean      @default(false)
+  active    Boolean      @default(true)
+  // Logical delete: an archived plan is hidden from admin + public lists.
+  archived  Boolean      @default(false)
+  order     Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String             @unique
+  planId            String
+  status            SubscriptionStatus @default(ACTIVE)
+  // Price snapshot at checkout time (MRR doesn't change if the plan is edited later).
+  priceCents        Int
+  startsAt          DateTime           @default(now())
+  currentPeriodEnd  DateTime?
+  canceledAt        DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan @relation(fields: [planId], references: [id])
+
+  @@index([planId])
+  @@index([status])
+}
+
+model Course {
+  id           String       @id @default(cuid())
+  title        String
+  slug         String       @unique
+  track        String?
+  description  String
+  status       CourseStatus @default(DRAFT)
+  coverUrl     String?
+  featured     Boolean      @default(false)
+  order        Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  mentors     CourseMentor[]
+  modules     Module[]
+  materials   Material[]
+  enrollments Enrollment[]
+}
+
+model CourseMentor {
+  courseId  String
+  mentorId  String
+  role      CourseMentorRole  @default(AUTHOR)
+  createdAt DateTime          @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  mentor User   @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, mentorId])
+  @@index([mentorId])
+}
+
+model Module {
+  id       String @id @default(cuid())
+  courseId String
+  order    Int
+  title    String
+
+  course    Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons   Lesson[]
+  materials Material[]
+
+  @@unique([courseId, order])
+  @@index([courseId])
+}
+
+model Lesson {
+  id               String        @id @default(cuid())
+  moduleId         String
+  order            Int
+  type             LessonType
+  title            String
+  contentUrl       String?
+  text             String?
+  // Block-based rich text (Payload-style). Present for lessons of type TEXT.
+  blocks           Json?
+  durationSeconds  Int?
+  status           ContentStatus @default(DRAFT)
+  sentForReviewAt  DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  module        Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress      LessonProgress[]
+  materials     Material[]
+  currentEnrollments Enrollment[] @relation("EnrollmentCurrentLesson")
+}
+
+model Material {
+  id           String       @id @default(cuid())
+  name         String
+  type         MaterialType
+  url          String
+  sizeBytes    BigInt
+  courseId     String?
+  moduleId     String?
+  lessonId     String?
+  createdAt    DateTime     @default(now())
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  module Module? @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([courseId])
+  @@index([type])
+}
+
+model Enrollment {
+  id               String    @id @default(cuid())
+  studentId        String
+  courseId         String
+  progressPercent  Int       @default(0)
+  currentLessonId  String?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  student       User    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course        Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  currentLesson Lesson? @relation("EnrollmentCurrentLesson", fields: [currentLessonId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, courseId])
+  @@index([courseId])
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  studentId   String
+  lessonId    String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson  Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, lessonId])
+}
+
+model Thread {
+  id          String       @id @default(cuid())
+  authorId    String
+  category    String
+  content     String
+  status      ThreadStatus @default(PENDING)
+  likeCount   Int          @default(0)
+  replyCount  Int          @default(0)
+  pinned      Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  author  User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions Reaction[]
+  replies   Reply[]
+  reports   Report[]
+
+  @@index([status, createdAt])
+  @@index([category])
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  threadId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+}
+
+model Reply {
+  id        String       @id @default(cuid())
+  threadId  String
+  authorId  String
+  content   String
+  status    ThreadStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+}
+
+model Report {
+  id         String          @id @default(cuid())
+  threadId   String
+  reporterId String
+  reason     String
+  status     ReportStatus    @default(IN_ANALYSIS)
+  decision   ReportDecision?
+  resolvedAt DateTime?
+  createdAt  DateTime        @default(now())
+
+  thread   Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  reporter User   @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([threadId])
+}
+
+model Testimonial {
+  id         String            @id @default(cuid())
+  studentId  String?
+  author     String
+  text       String
+  rating     Int
+  status     TestimonialStatus @default(PENDING)
+  visible    Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  student User? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@index([status, visible])
+}
+
+// Home highlights — replaces the old PageContent.secoesJson blob (CMS §7.5).
+// Singleton row; stats are repeatable and ordered.
+model HomeHighlight {
+  id                String   @id @default(cuid())
+  heroHeadline      String
+  heroHighlightWord String?
+  // Hero accepts multiple photos; when >1 the home rotates them with a "persiana" effect.
+  heroImages        String[] @default([])
+  mentorName        String
+  mentorArea        String
+  mentorSlots       Int      @default(0)
+  ctaTitle          String
+  ctaUrl            String
+  // Static home sections copy (CMS). Defaults keep the current published text.
+  prumoEyebrow          String @default("O Prumo")
+  prumoLead             String @default("Na construção, o prumo é a ferramenta que garante que tudo esteja alinhado. Na profissão, é a gestão que sustenta cada projeto.")
+  coursesEyebrow        String @default("Cursos")
+  coursesTitle          String @default("Domine a gestão, do projeto ao resultado.")
+  coursesLinkLabel      String @default("Ver todos os cursos")
+  adviceEyebrow         String @default("Conselho mensal")
+  adviceTitle           String @default("Um mentor para acompanhar o seu estúdio todo mês")
+  adviceDescription     String @default("A cada mês, um mentor do Prumo acompanha os alunos de perto: revisa as ações aplicadas nos cursos, aponta o que ajustar e define as prioridades do próximo ciclo.")
+  adviceNote            String @default("Conselho inclusa nos planos Anual e Equipes.")
+  methodEyebrow         String @default("O Método")
+  testimonialsEyebrow   String @default("Depoimentos")
+  testimonialsTitle     String @default("Quem já construiu com o Prumo.")
+  plansEyebrow          String @default("Planos")
+  plansTitle            String @default("Um só acesso para todos os cursos.")
+  plansDescription      String @default("Assine e desbloqueie o catálogo completo. Cancele quando quiser, sem multas e sem burocracia.")
+  plansVisible          Boolean @default(true)
+  newsletterEyebrow     String @default("Newsletter")
+  newsletterTitle       String @default("Receba insights de gestão para arquitetos e decoradores.")
+  newsletterDescription String @default("Uma carta quinzenal com números, casos e ferramentas para tornar o seu estúdio mais rentável. Sem spam.")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  stats       HomeHighlightStat[]
+  manifesto   HomeManifestoItem[]
+  adviceItems HomeAdviceItem[]
+}
+
+model HomeManifestoItem {
+  id          String  @id @default(cuid())
+  highlightId String
+  order       Int
+  number      String
+  text        String
+
+  highlight HomeHighlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+
+  @@unique([highlightId, order])
+}
+
+model HomeAdviceItem {
+  id          String  @id @default(cuid())
+  highlightId String
+  order       Int
+  number      String
+  title       String
+  description String
+
+  highlight HomeHighlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+
+  @@unique([highlightId, order])
+}
+
+model HomeHighlightStat {
+  id          String       @id @default(cuid())
+  highlightId String
+  order       Int
+  value       String
+  label       String
+
+  highlight HomeHighlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+
+  @@unique([highlightId, order])
+}
+
+// Community rules — used to live as JSON inside PageContent.
+model CommunityRule {
+  id        String   @id @default(cuid())
+  order     Int      @unique
+  text      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SiteMenu {
+  id       String       @id @default(cuid())
+  location MenuLocation
+  order    Int
+  label    String
+  url      String
+  type     MenuItemType @default(PAGE)
+  active   Boolean      @default(true)
+  // Footer: column title (e.g. "Empresa"). Header: null.
+  column   String?
+
+  @@unique([location, order])
+  @@index([location, active])
+}
+
+model Method {
+  id          String  @id @default(cuid())
+  kicker      String
+  title       String
+  description String
+  // Single editorial page for the Method.
+  published   Boolean @default(false)
+
+  steps MethodStep[]
+}
+
+model MethodStep {
+  id          String @id @default(cuid())
+  methodId    String
+  order       Int
+  title       String
+  description String
+
+  method Method @relation(fields: [methodId], references: [id], onDelete: Cascade)
+
+  @@unique([methodId, order])
+}
+
+enum LiveStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+}
+
+enum LiveType {
+  LIVE
+  MENTORING
+}
+
+model Live {
+  id            String     @id @default(cuid())
+  title         String
+  description   String
+  type          LiveType   @default(LIVE)
+  startsAt      DateTime
+  durationMin   Int        @default(60)
+  roomUrl       String?
+  recordingUrl  String?
+  status        LiveStatus @default(SCHEDULED)
+  mentorName    String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+enum InvoiceStatus {
+  PAID
+  OPEN
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  userId      String
+  amountCents Int
+  description String
+  cycle       BillingCycle
+  status      InvoiceStatus @default(PAID)
+  issuedAt    DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, issuedAt])
+}
+
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
