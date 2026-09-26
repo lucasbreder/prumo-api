@@ -9,34 +9,40 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["prumo"]
 }
 
 enum Role {
   STUDENT
   MENTOR
   ADMIN
+  @@schema("prumo")
 }
 
 enum BillingCycle {
   MONTHLY
   YEARLY
   TEAM
+  @@schema("prumo")
 }
 
 enum SubscriptionStatus {
   ACTIVE
   CANCELED
   EXPIRED
+  @@schema("prumo")
 }
 
 enum CourseStatus {
   PUBLISHED
   DRAFT
+  @@schema("prumo")
 }
 
 enum CourseMentorRole {
   AUTHOR
   COAUTHOR
+  @@schema("prumo")
 }
 
 enum LessonType {
@@ -44,12 +50,14 @@ enum LessonType {
   QUIZ
   MATERIAL
   TEXT
+  @@schema("prumo")
 }
 
 enum ContentStatus {
   DRAFT
   IN_REVIEW
   PUBLISHED
+  @@schema("prumo")
 }
 
 enum MaterialType {
@@ -59,45 +67,53 @@ enum MaterialType {
   EBOOK
   CHECKLIST
   PRESENTATION
+  @@schema("prumo")
 }
 
 enum ThreadStatus {
   PUBLISHED
   PENDING
   HIDDEN
+  @@schema("prumo")
 }
 
 enum ReportStatus {
   IN_ANALYSIS
   RESOLVED
+  @@schema("prumo")
 }
 
 enum ReportDecision {
   REMOVE
   IGNORE
   BAN_AUTHOR
+  @@schema("prumo")
 }
 
 enum TestimonialStatus {
   PENDING
   APPROVED
+  @@schema("prumo")
 }
 
 enum MenuLocation {
   HEADER
   FOOTER
+  @@schema("prumo")
 }
 
 enum MenuItemType {
   PAGE
   CTA
   LINK
+  @@schema("prumo")
 }
 
 enum MentorProfileStatus {
   PENDING
   APPROVED
   REJECTED
+  @@schema("prumo")
 }
 
 model User {
@@ -137,6 +153,7 @@ model User {
   reactions       Reaction[]
   reportsMade     Report[]             @relation("ReportReporter")
   testimonials    Testimonial[]
+  @@schema("prumo")
 }
 
 model RefreshToken {
@@ -154,6 +171,7 @@ model RefreshToken {
 
   @@index([userId])
   @@index([familyId])
+  @@schema("prumo")
 }
 
 model PasswordResetToken {
@@ -167,6 +185,7 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@schema("prumo")
 }
 
 model Plan {
@@ -186,6 +205,7 @@ model Plan {
   updatedAt DateTime     @updatedAt
 
   subscriptions Subscription[]
+  @@schema("prumo")
 }
 
 model Subscription {
@@ -206,6 +226,7 @@ model Subscription {
 
   @@index([planId])
   @@index([status])
+  @@schema("prumo")
 }
 
 model Course {
@@ -225,6 +246,7 @@ model Course {
   modules     Module[]
   materials   Material[]
   enrollments Enrollment[]
+  @@schema("prumo")
 }
 
 model CourseMentor {
@@ -238,6 +260,7 @@ model CourseMentor {
 
   @@id([courseId, mentorId])
   @@index([mentorId])
+  @@schema("prumo")
 }
 
 model Module {
@@ -252,6 +275,7 @@ model Module {
 
   @@unique([courseId, order])
   @@index([courseId])
+  @@schema("prumo")
 }
 
 model Lesson {
@@ -274,6 +298,7 @@ model Lesson {
   progress      LessonProgress[]
   materials     Material[]
   currentEnrollments Enrollment[] @relation("EnrollmentCurrentLesson")
+  @@schema("prumo")
 }
 
 model Material {
@@ -293,6 +318,7 @@ model Material {
 
   @@index([courseId])
   @@index([type])
+  @@schema("prumo")
 }
 
 model Enrollment {
@@ -311,6 +337,7 @@ model Enrollment {
 
   @@unique([studentId, courseId])
   @@index([courseId])
+  @@schema("prumo")
 }
 
 model LessonProgress {
@@ -324,6 +351,7 @@ model LessonProgress {
   lesson  Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, lessonId])
+  @@schema("prumo")
 }
 
 model Thread {
@@ -345,6 +373,7 @@ model Thread {
 
   @@index([status, createdAt])
   @@index([category])
+  @@schema("prumo")
 }
 
 model Reaction {
@@ -357,6 +386,7 @@ model Reaction {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([threadId, userId])
+  @@schema("prumo")
 }
 
 model Reply {
@@ -371,6 +401,7 @@ model Reply {
   author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([threadId])
+  @@schema("prumo")
 }
 
 model Report {
@@ -388,6 +419,7 @@ model Report {
 
   @@index([status])
   @@index([threadId])
+  @@schema("prumo")
 }
 
 model Testimonial {
@@ -404,6 +436,7 @@ model Testimonial {
   student User? @relation(fields: [studentId], references: [id], onDelete: SetNull)
 
   @@index([status, visible])
+  @@schema("prumo")
 }
 
 // Home highlights — replaces the old PageContent.secoesJson blob (CMS §7.5).
@@ -445,6 +478,7 @@ model HomeHighlight {
   stats       HomeHighlightStat[]
   manifesto   HomeManifestoItem[]
   adviceItems HomeAdviceItem[]
+  @@schema("prumo")
 }
 
 model HomeManifestoItem {
@@ -457,6 +491,7 @@ model HomeManifestoItem {
   highlight HomeHighlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
 
   @@unique([highlightId, order])
+  @@schema("prumo")
 }
 
 model HomeAdviceItem {
@@ -470,6 +505,7 @@ model HomeAdviceItem {
   highlight HomeHighlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
 
   @@unique([highlightId, order])
+  @@schema("prumo")
 }
 
 model HomeHighlightStat {
@@ -482,6 +518,7 @@ model HomeHighlightStat {
   highlight HomeHighlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
 
   @@unique([highlightId, order])
+  @@schema("prumo")
 }
 
 // Community rules — used to live as JSON inside PageContent.
@@ -491,6 +528,7 @@ model CommunityRule {
   text      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  @@schema("prumo")
 }
 
 model SiteMenu {
@@ -506,6 +544,7 @@ model SiteMenu {
 
   @@unique([location, order])
   @@index([location, active])
+  @@schema("prumo")
 }
 
 model Method {
@@ -517,6 +556,7 @@ model Method {
   published   Boolean @default(false)
 
   steps MethodStep[]
+  @@schema("prumo")
 }
 
 model MethodStep {
@@ -529,17 +569,20 @@ model MethodStep {
   method Method @relation(fields: [methodId], references: [id], onDelete: Cascade)
 
   @@unique([methodId, order])
+  @@schema("prumo")
 }
 
 enum LiveStatus {
   SCHEDULED
   LIVE
   ENDED
+  @@schema("prumo")
 }
 
 enum LiveType {
   LIVE
   MENTORING
+  @@schema("prumo")
 }
 
 model Live {
@@ -555,11 +598,13 @@ model Live {
   mentorName    String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+  @@schema("prumo")
 }
 
 enum InvoiceStatus {
   PAID
   OPEN
+  @@schema("prumo")
 }
 
 model Invoice {
@@ -574,10 +619,12 @@ model Invoice {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, issuedAt])
+  @@schema("prumo")
 }
 
 model Newsletter {
   id        String   @id @default(cuid())
   email     String   @unique
   createdAt DateTime @default(now())
+  @@schema("prumo")
 }
