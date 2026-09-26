@@ -36,3 +36,9 @@ services:
     # Descomente apenas para teste local direto (docker compose up):
     # ports:
     #   - "7001:7001"
+    networks:
+      - prumo
+
+networks:
+  prumo:
+    external: true
