@@ -1,21 +1,22 @@
-# ---- deps: instala tudo (dev incluído) e roda prisma generate via postinstall ----
+# ---- deps: instala tudo (dev incluído) ----
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-COPY prisma.config.ts ./
-COPY prisma ./prisma
-# --ignore-scripts: pula o postinstall; generate roda explícito com URL dummy.
-# --include=dev: o Coolify injeta NODE_ENV=production em todos os stages, o que
-# faria o npm ci pular devDeps (CLI do prisma) e o npx baixar prisma 8 RC.
-# ./node_modules/.bin/prisma: binário local pinado, nunca o npx.
-RUN npm ci --ignore-scripts --include=dev \
-  && DATABASE_URL="postgresql://build:***@localhost:5432/build" ./node_modules/.bin/prisma generate
+# --ignore-scripts + --include=dev: o Coolify injeta NODE_ENV=production em
+# todos os stages; sem --include=dev o npm pularia devDeps (CLI do prisma).
+RUN npm ci --ignore-scripts --include=dev
 
-# ---- build: compila o Nest ----
+# ---- build: gera o client e compila o Nest ----
+# generate acontece AQUI (e não no deps) porque o gerador do Prisma 7 decide a
+# extensão dos imports (./x.js vs ./x.ts) lendo o tsconfig.json mais próximo;
+# sem ele em runtime o node quebra com ERR_MODULE_NOT_FOUND em dist/*.ts.
 FROM deps AS build
 COPY tsconfig.json tsconfig.build.json nest-cli.json ./
+COPY prisma.config.ts ./
+COPY prisma ./prisma
 COPY src ./src
-RUN npm run build
+RUN DATABASE_URL="postgresql://build:***@localhost:5432/build" ./node_modules/.bin/prisma generate \
+  && npm run build
 
 # ---- runner: só produção + CLI do prisma para rodar as migrations ----
 FROM node:24-alpine AS runner
