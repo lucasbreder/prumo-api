@@ -4,10 +4,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY prisma.config.ts ./
 COPY prisma ./prisma
-# --ignore-scripts: pula o postinstall; generate roda explícito com URL dummy
-# (generate não conecta no banco; em runtime o migrate deploy usa o DATABASE_URL real)
-RUN npm ci --ignore-scripts \
-  && DATABASE_URL="postgresql://build:***@localhost:5432/build" npx prisma generate
+# --ignore-scripts: pula o postinstall; generate roda explícito com URL dummy.
+# --include=dev: o Coolify injeta NODE_ENV=production em todos os stages, o que
+# faria o npm ci pular devDeps (CLI do prisma) e o npx baixar prisma 8 RC.
+# ./node_modules/.bin/prisma: binário local pinado, nunca o npx.
+RUN npm ci --ignore-scripts --include=dev \
+  && DATABASE_URL="postgresql://build:***@localhost:5432/build" ./node_modules/.bin/prisma generate
 
 # ---- build: compila o Nest ----
 FROM deps AS build
