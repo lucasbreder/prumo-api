@@ -38,6 +38,7 @@ import {
   CompleteMultipartUploadUseCase,
   InitiateMultipartUploadUseCase,
   PresignUploadUseCase,
+  RemoveCourseUseCase,
   RemoveLessonUseCase,
   ReviewLessonUseCase,
   SaveCourseUseCase,
@@ -574,6 +575,17 @@ describe('Equipe (admin): curriculo, revisao e uploads', () => {
       publish: true,
     });
     expect(ctx.course.status).toBe('PUBLISHED');
+  });
+  it('equipe remove curso', async () => {
+    await new RemoveCourseUseCase(ctx.depsEquipe).execute({
+      courseId: ctx.course.id,
+    });
+    expect(ctx.courses.courses.has(ctx.course.id)).toBe(false);
+    await expect(
+      new RemoveCourseUseCase(ctx.depsEquipe).execute({
+        courseId: 'curso-inexistente',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
   it('aprova e reprova revisao', async () => {
     const lesson = Lesson.create({

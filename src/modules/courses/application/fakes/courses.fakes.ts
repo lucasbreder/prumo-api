@@ -103,6 +103,9 @@ export class FakeCourseRepo implements CourseReader, CourseWriter {
   async save(course: Course) {
     this.courses.set(course.id, course);
   }
+  async remove(id: string) {
+    this.courses.delete(id);
+  }
 }
 export class FakeLessonRepo implements LessonReader, LessonWriter {
   lessons = new Map<

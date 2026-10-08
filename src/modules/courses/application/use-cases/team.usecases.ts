@@ -137,6 +137,15 @@ export class RemoveLessonUseCase {
     return { id: input.lessonId };
   }
 }
+export class RemoveCourseUseCase {
+  constructor(private readonly deps: EquipeDeps) {}
+  async execute(input: { courseId: string }) {
+    const course = await this.deps.courses.byId(input.courseId);
+    if (!course) throw new NotFoundError('Curso nao encontrado');
+    await this.deps.courses.remove(input.courseId);
+    return { id: input.courseId };
+  }
+}
 export class ReviewLessonUseCase {
   constructor(private readonly deps: EquipeDeps) {}
   private async get(lessonId: string) {

@@ -56,6 +56,7 @@ export interface CourseReader {
 export interface CourseWriter {
   create(course: Course): Promise<void>;
   save(course: Course): Promise<void>;
+  remove(id: string): Promise<void>;
 }
 export interface LessonEmCurriculum {
   moduleId: string;

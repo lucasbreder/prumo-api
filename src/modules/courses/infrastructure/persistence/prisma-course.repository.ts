@@ -233,4 +233,15 @@ export class PrismaCourseRepository implements CourseReader, CourseWriter {
       throw e;
     }
   }
+  async remove(id: string): Promise<void> {
+    await this.prisma.course.delete({ where: { id } }).catch((e: unknown) => {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2025'
+      ) {
+        throw new NotFoundError('Curso nao encontrado');
+      }
+      throw e;
+    });
+  }
 }

@@ -276,4 +276,28 @@ describe('Conteudo textual em blocos (e2e)', () => {
       })
       .expect(422);
   });
+  it('admin remove curso', async () => {
+    const removel = await courseWithLessonPublic(t.prisma, {
+      slug: 'curso-para-remover',
+    });
+    const admin = await createUser(t.prisma, {
+      email: 'adm-remove@test.dev',
+      role: 'ADMIN',
+    });
+    const adminToken = await login(t.api, admin.email);
+    await t.api
+      .delete(`/admin/courses/${removel.course.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(204);
+    // some do catalogo publico
+    const list = await t.api.get('/courses').expect(200);
+    expect(list.body.items.map((c: { slug: string }) => c.slug)).not.toContain(
+      'curso-para-remover',
+    );
+    // curso inexistente -> 404
+    await t.api
+      .delete(`/admin/courses/${removel.course.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(404);
+  });
 });
