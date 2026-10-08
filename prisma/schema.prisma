@@ -284,7 +284,11 @@ model Lesson {
   order            Int
   type             LessonType
   title            String
+  // Conteudo ativo conforme o `type` (compat com APIs/consumidores existentes).
   contentUrl       String?
+  // Arquivos por tipo, independentes: a edicao guarda video e material juntos.
+  videoUrl         String?
+  materialUrl      String?
   text             String?
   // Block-based rich text (Payload-style). Present for lessons of type TEXT.
   blocks           Json?

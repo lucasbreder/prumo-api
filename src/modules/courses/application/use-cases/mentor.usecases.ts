@@ -88,6 +88,12 @@ export class GetCurriculumDoMentorUseCase {
           contentUrlSigned: await resolveAssetUrl(a.contentUrl, (k) =>
             this.deps.presigner.resolvePublicUrl(k),
           ),
+          videoUrlSigned: await resolveAssetUrl(a.videoUrl, (k) =>
+            this.deps.presigner.resolvePublicUrl(k),
+          ),
+          materialUrlSigned: await resolveAssetUrl(a.materialUrl, (k) =>
+            this.deps.presigner.resolvePublicUrl(k),
+          ),
           blocks: await resolveBlockImages(a.blocks, (k) =>
             this.deps.presigner.resolvePublicUrl(k),
           ),
@@ -120,6 +126,8 @@ export class AddLessonComoMentorUseCase {
     title: string;
     type: 'VIDEO' | 'QUIZ' | 'MATERIAL' | 'TEXT';
     contentUrl?: string;
+    videoUrl?: string;
+    materialUrl?: string;
     text?: string;
     blocks?: unknown;
     durationSeconds?: number;
@@ -146,6 +154,8 @@ export class AddLessonComoMentorUseCase {
       type: input.type,
       title: input.title,
       contentUrl: input.contentUrl,
+      videoUrl: input.videoUrl,
+      materialUrl: input.materialUrl,
       text: input.text,
       blocks: input.blocks,
       durationSeconds: input.durationSeconds,

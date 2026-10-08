@@ -114,6 +114,12 @@ export class AdminCoursesController {
           contentUrlSigned: await resolveAssetUrl(a.contentUrl, (k) =>
             this.presigner.resolvePublicUrl(k),
           ),
+          videoUrlSigned: await resolveAssetUrl(a.videoUrl, (k) =>
+            this.presigner.resolvePublicUrl(k),
+          ),
+          materialUrlSigned: await resolveAssetUrl(a.materialUrl, (k) =>
+            this.presigner.resolvePublicUrl(k),
+          ),
           blocks: await resolveBlockImages(a.blocks, (k) =>
             this.presigner.resolvePublicUrl(k),
           ),

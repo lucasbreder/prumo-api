@@ -67,6 +67,8 @@ export interface LessonEmCurriculum {
   title: string;
   status: string;
   contentUrl: string | null;
+  videoUrl: string | null;
+  materialUrl: string | null;
   text: string | null;
   blocks: ContentBlock[] | null;
   durationSeconds: number | null;

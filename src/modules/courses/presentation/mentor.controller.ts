@@ -96,6 +96,8 @@ export class MentorController {
       title: input.title,
       type: input.type,
       contentUrl: input.contentUrl,
+      videoUrl: input.videoUrl,
+      materialUrl: input.materialUrl,
       text: input.text,
       blocks: input.blocks,
       durationSeconds: input.durationSeconds,

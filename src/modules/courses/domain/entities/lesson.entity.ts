@@ -12,12 +12,47 @@ export interface LessonProps {
   order: number;
   type: LessonType;
   title: string;
-  contentUrl: string | null;
+  // Arquivos independentes por tipo; o editor guarda os dois.
+  videoUrl: string | null;
+  materialUrl: string | null;
   text: string | null;
   blocks: ContentBlock[] | null;
   durationSeconds: number | null;
   status: ContentStatus;
   sentForReviewAt: Date | null;
+}
+// Entrada de mídia aceita os campos por tipo e o `contentUrl` legado (alocado
+// no slot correspondente ao `type`).
+interface MidiaInput {
+  contentUrl?: string | null;
+  videoUrl?: string | null;
+  materialUrl?: string | null;
+}
+function mediaInicial(
+  type: LessonType,
+  input: MidiaInput,
+): { videoUrl: string | null; materialUrl: string | null } {
+  let videoUrl = input.videoUrl ?? null;
+  let materialUrl = input.materialUrl ?? null;
+  if (input.contentUrl !== undefined && input.contentUrl !== null) {
+    if (type === 'MATERIAL') materialUrl = input.contentUrl;
+    else videoUrl = input.contentUrl;
+  }
+  return { videoUrl, materialUrl };
+}
+function mediaPatch(
+  type: LessonType,
+  atual: { videoUrl: string | null; materialUrl: string | null },
+  input: MidiaInput,
+): { videoUrl: string | null; materialUrl: string | null } {
+  let { videoUrl, materialUrl } = atual;
+  if (input.videoUrl !== undefined) videoUrl = input.videoUrl;
+  if (input.materialUrl !== undefined) materialUrl = input.materialUrl;
+  if (input.contentUrl !== undefined) {
+    if (type === 'MATERIAL') materialUrl = input.contentUrl;
+    else videoUrl = input.contentUrl;
+  }
+  return { videoUrl, materialUrl };
 }
 export class Lesson {
   private constructor(private readonly props: LessonProps) {}
@@ -25,24 +60,32 @@ export class Lesson {
     data: Omit<
       LessonProps,
       | 'status'
-      | 'contentUrl'
+      | 'videoUrl'
+      | 'materialUrl'
       | 'text'
       | 'blocks'
       | 'durationSeconds'
       | 'sentForReviewAt'
     > &
-      Partial<
-        Pick<LessonProps, 'contentUrl' | 'text' | 'durationSeconds'>
-      > & {
+      Partial<Pick<LessonProps, 'text' | 'durationSeconds'>> &
+      MidiaInput & {
         blocks?: unknown;
       },
   ): Lesson {
     if (!data.title?.trim()) {
       throw new BusinessRuleError('O titulo da aula e obrigatorio');
     }
-    const { blocks: rawBlocks, ...rest } = data;
+    const {
+      blocks: rawBlocks,
+      contentUrl,
+      videoUrl,
+      materialUrl,
+      ...rest
+    } = data;
+    const media = mediaInicial(data.type, { contentUrl, videoUrl, materialUrl });
     return new Lesson({
-      contentUrl: data.contentUrl ?? null,
+      videoUrl: media.videoUrl,
+      materialUrl: media.materialUrl,
       text: data.text ?? null,
       durationSeconds: data.durationSeconds ?? null,
       sentForReviewAt: null,
@@ -73,8 +116,16 @@ export class Lesson {
   get title(): string {
     return this.props.title;
   }
+  get videoUrl(): string | null {
+    return this.props.videoUrl;
+  }
+  get materialUrl(): string | null {
+    return this.props.materialUrl;
+  }
+  // Conteudo ativo conforme o tipo (compat com consumidores que usam contentUrl).
   get contentUrl(): string | null {
-    return this.props.contentUrl;
+    if (this.props.type === 'MATERIAL') return this.props.materialUrl;
+    return this.props.videoUrl ?? this.props.materialUrl ?? null;
   }
   get text(): string | null {
     return this.props.text;
@@ -93,7 +144,7 @@ export class Lesson {
   }
   get temContent(): boolean {
     return Boolean(
-      this.props.contentUrl ||
+      this.contentUrl ||
         this.props.text ||
         (this.props.blocks && blocksHaveContent(this.props.blocks)),
     );
@@ -147,13 +198,11 @@ export class Lesson {
   }
   editContent(
     data: Partial<
-      Pick<
-        LessonProps,
-        'title' | 'contentUrl' | 'text' | 'durationSeconds' | 'order' | 'type'
-      >
-    > & {
-      blocks?: unknown;
-    },
+      Pick<LessonProps, 'title' | 'text' | 'durationSeconds' | 'order' | 'type'>
+    > &
+      MidiaInput & {
+        blocks?: unknown;
+      },
     editAsTeam = false,
   ): void {
     if (this.props.status === 'IN_REVIEW' && !editAsTeam) {
@@ -166,7 +215,14 @@ export class Lesson {
         throw new BusinessRuleError('O titulo da aula e obrigatorio');
       this.props.title = data.title.trim();
     }
-    if (data.contentUrl !== undefined) this.props.contentUrl = data.contentUrl;
+    if (data.type !== undefined) this.props.type = data.type;
+    const media = mediaPatch(
+      this.props.type,
+      { videoUrl: this.props.videoUrl, materialUrl: this.props.materialUrl },
+      data,
+    );
+    this.props.videoUrl = media.videoUrl;
+    this.props.materialUrl = media.materialUrl;
     if (data.text !== undefined) this.props.text = data.text;
     if (data.blocks !== undefined) {
       this.props.blocks = RichContent.assert(data.blocks);
@@ -174,7 +230,6 @@ export class Lesson {
     if (data.durationSeconds !== undefined)
       this.props.durationSeconds = data.durationSeconds;
     if (data.order !== undefined) this.props.order = data.order;
-    if (data.type !== undefined) this.props.type = data.type;
     if (this.props.status === 'PUBLISHED' && !editAsTeam) {
       // Content alterado by mentor exige nova aprovacao da team.
       this.props.status = 'IN_REVIEW';

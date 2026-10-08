@@ -122,6 +122,14 @@ export class CreateLessonInput {
   contentUrl?: string;
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
+  videoUrl?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  materialUrl?: string;
+  @IsOptional()
+  @IsString()
   @MaxLength(100000)
   text?: string;
   @IsOptional()
@@ -146,6 +154,14 @@ export class EditLessonInput {
   @IsString()
   @MaxLength(500)
   contentUrl?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  videoUrl?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  materialUrl?: string;
   @IsOptional()
   @IsString()
   @MaxLength(100000)

@@ -111,6 +111,27 @@ describe('Aula (ciclo Rascunho -> Em revisao -> Publicado)', () => {
     lesson.editContent({ contentUrl: null });
     expect(lesson.contentUrl).toBeNull();
   });
+  it('guarda vídeo e material separados; contentUrl segue o tipo', () => {
+    const lesson = novaLesson({
+      type: 'VIDEO',
+      videoUrl: 'uploads/v.mp4',
+      materialUrl: 'uploads/m.pdf',
+    });
+    expect(lesson.videoUrl).toBe('uploads/v.mp4');
+    expect(lesson.materialUrl).toBe('uploads/m.pdf');
+    expect(lesson.contentUrl).toBe('uploads/v.mp4');
+    lesson.editContent({ type: 'MATERIAL' });
+    expect(lesson.contentUrl).toBe('uploads/m.pdf');
+    expect(lesson.videoUrl).toBe('uploads/v.mp4');
+  });
+  it('contentUrl legado é alocado no slot do tipo', () => {
+    const v = novaLesson({ type: 'VIDEO', contentUrl: 'uploads/v.mp4' });
+    expect(v.videoUrl).toBe('uploads/v.mp4');
+    expect(v.materialUrl).toBeNull();
+    const m = novaLesson({ type: 'MATERIAL', contentUrl: 'uploads/m.pdf' });
+    expect(m.materialUrl).toBe('uploads/m.pdf');
+    expect(m.videoUrl).toBeNull();
+  });
   it('equipe alterna status de rascunho para publicado diretamente', () => {
     const lesson = novaLesson({ type: 'MATERIAL', text: 'roteiro' });
     expect(lesson.status).toBe('DRAFT');

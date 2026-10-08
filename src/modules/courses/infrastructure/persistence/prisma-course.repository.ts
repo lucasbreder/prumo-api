@@ -135,6 +135,8 @@ export class PrismaCourseRepository implements CourseReader, CourseWriter {
         title: true,
         status: true,
         contentUrl: true,
+        videoUrl: true,
+        materialUrl: true,
         text: true,
         blocks: true,
         durationSeconds: true,
@@ -143,21 +145,29 @@ export class PrismaCourseRepository implements CourseReader, CourseWriter {
         module: { select: { order: true, title: true } },
       },
     });
-    return lessons.map((a) => ({
-      moduleId: a.moduleId,
-      moduleOrder: a.module.order,
-      moduleTitle: a.module.title,
-      lessonId: a.id,
-      lessonOrder: a.order,
-      type: a.type,
-      title: a.title,
-      status: a.status,
-      contentUrl: a.contentUrl,
-      text: a.text,
-      blocks: (a.blocks as ContentBlock[] | null) ?? null,
-      durationSeconds: a.durationSeconds,
-      sentForReviewAt: a.sentForReviewAt,
-    }));
+    return lessons.map((a) => {
+      const videoUrl =
+        a.videoUrl ?? (a.type !== 'MATERIAL' ? a.contentUrl : null);
+      const materialUrl =
+        a.materialUrl ?? (a.type === 'MATERIAL' ? a.contentUrl : null);
+      return {
+        moduleId: a.moduleId,
+        moduleOrder: a.module.order,
+        moduleTitle: a.module.title,
+        lessonId: a.id,
+        lessonOrder: a.order,
+        type: a.type,
+        title: a.title,
+        status: a.status,
+        contentUrl: a.contentUrl,
+        videoUrl,
+        materialUrl,
+        text: a.text,
+        blocks: (a.blocks as ContentBlock[] | null) ?? null,
+        durationSeconds: a.durationSeconds,
+        sentForReviewAt: a.sentForReviewAt,
+      };
+    });
   }
   async temLessonPublicada(courseId: string): Promise<boolean> {
     const count = await this.prisma.lesson.count({

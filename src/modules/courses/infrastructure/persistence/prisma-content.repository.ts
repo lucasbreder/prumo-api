@@ -38,6 +38,8 @@ const FieldsLesson = {
   type: true,
   title: true,
   contentUrl: true,
+  videoUrl: true,
+  materialUrl: true,
   text: true,
   blocks: true,
   durationSeconds: true,
@@ -58,14 +60,23 @@ function rowForLesson(
   lesson: Lesson;
   courseId: string;
 } {
+  const type = row.type as 'VIDEO' | 'QUIZ' | 'MATERIAL' | 'TEXT';
+  // Compat: aulas antigas só têm `contentUrl`; aloca no slot conforme o tipo.
+  const videoUrl =
+    row.videoUrl ??
+    (type !== 'MATERIAL' ? row.contentUrl : null);
+  const materialUrl =
+    row.materialUrl ??
+    (type === 'MATERIAL' ? row.contentUrl : null);
   return {
     lesson: Lesson.reconstituir({
       id: row.id,
       moduleId: row.moduleId,
       order: row.order,
-      type: row.type as 'VIDEO' | 'QUIZ' | 'MATERIAL' | 'TEXT',
+      type,
       title: row.title,
-      contentUrl: row.contentUrl,
+      videoUrl,
+      materialUrl,
       text: row.text,
       blocks: (row.blocks as ContentBlock[] | null) ?? null,
       durationSeconds: row.durationSeconds,
@@ -82,6 +93,8 @@ function lessonForEscritura(lesson: Lesson) {
     type: lesson.type,
     title: lesson.title,
     contentUrl: lesson.contentUrl,
+    videoUrl: lesson.videoUrl,
+    materialUrl: lesson.materialUrl,
     text: lesson.text,
     blocks: (lesson.blocks ?? null) as Prisma.InputJsonValue,
     durationSeconds: lesson.durationSeconds,

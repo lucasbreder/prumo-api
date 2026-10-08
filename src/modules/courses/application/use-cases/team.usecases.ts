@@ -94,6 +94,8 @@ export class AddLessonUseCase {
     title: string;
     type: 'VIDEO' | 'QUIZ' | 'MATERIAL' | 'TEXT';
     contentUrl?: string;
+    videoUrl?: string;
+    materialUrl?: string;
     text?: string;
     blocks?: unknown;
     durationSeconds?: number;
@@ -116,6 +118,8 @@ export class AddLessonUseCase {
       type: input.type,
       title: input.title,
       contentUrl: input.contentUrl,
+      videoUrl: input.videoUrl,
+      materialUrl: input.materialUrl,
       text: input.text,
       blocks: input.blocks,
       durationSeconds: input.durationSeconds,
