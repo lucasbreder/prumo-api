@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -14,6 +15,7 @@ import {
   AddLessonComoMentorUseCase,
   AddModuleComoMentorUseCase,
   EditLessonAsMentorUseCase,
+  RemoveLessonComoMentorUseCase,
   SendLessonForReviewUseCase,
   ListCoursesDoMentorUseCase,
   ListMaterialsDoMentorUseCase,
@@ -45,6 +47,7 @@ export class MentorController {
     private readonly addModule: AddModuleComoMentorUseCase,
     private readonly addLesson: AddLessonComoMentorUseCase,
     private readonly editLesson: EditLessonAsMentorUseCase,
+    private readonly removeLesson: RemoveLessonComoMentorUseCase,
   ) {}
   @Get()
   async courses(
@@ -112,6 +115,16 @@ export class MentorController {
       lessonId,
       data: input,
     });
+  }
+  @Delete('lessons/:lessonId')
+  @HttpCode(204)
+  async remove(
+    @CurrentUser()
+    user: AuthUser,
+    @Param('lessonId')
+    lessonId: string,
+  ) {
+    await this.removeLesson.execute({ mentorId: user.id, lessonId });
   }
 }
 @Controller()

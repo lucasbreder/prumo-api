@@ -121,6 +121,9 @@ export class FakeLessonRepo implements LessonReader, LessonWriter {
     const existing = this.lessons.get(lesson.id);
     if (existing) existing.lesson = lesson;
   }
+  async remove(id: string) {
+    this.lessons.delete(id);
+  }
 }
 export class FakeModuleRepo implements ModuleReader, ModuleWriter {
   modules = new Map<string, ModuleInput>();

@@ -201,6 +201,75 @@ describe('Area do mentor (e2e)', () => {
       .send({ status: 'PUBLISHED' })
       .expect(403);
   });
+  it('mentor remove aula do proprio curso; intruso nao', async () => {
+    const course = (
+      await t.api
+        .get('/mentor/courses')
+        .set('Authorization', `Bearer ${mentor.token}`)
+    ).body.courses[0];
+    const module = await t.api
+      .post(`/mentor/courses/${course.id}/modules`)
+      .set('Authorization', `Bearer ${mentor.token}`)
+      .send({ title: 'Mod remover' });
+    const lesson = await t.api
+      .post(`/mentor/courses/${course.id}/lessons`)
+      .set('Authorization', `Bearer ${mentor.token}`)
+      .send({
+        moduleId: module.body.id,
+        title: 'A remover',
+        type: 'MATERIAL',
+        text: 'leitura',
+      })
+      .expect(201);
+    // outro mentor nao pode remover
+    await t.api
+      .delete(`/mentor/courses/lessons/${lesson.body.id}`)
+      .set('Authorization', `Bearer ${outroMentor.token}`)
+      .expect(403);
+    // mentor dono remove
+    await t.api
+      .delete(`/mentor/courses/lessons/${lesson.body.id}`)
+      .set('Authorization', `Bearer ${mentor.token}`)
+      .expect(204);
+    const curriculum = await t.api
+      .get(`/mentor/courses/${course.id}`)
+      .set('Authorization', `Bearer ${mentor.token}`)
+      .expect(200);
+    expect(
+      curriculum.body.lessons.find(
+        (l: { lessonId: string }) => l.lessonId === lesson.body.id,
+      ),
+    ).toBeUndefined();
+  });
+  it('admin remove aula do curriculo', async () => {
+    const course = (
+      await t.api
+        .get('/mentor/courses')
+        .set('Authorization', `Bearer ${mentor.token}`)
+    ).body.courses[0];
+    const module = await t.api
+      .post(`/mentor/courses/${course.id}/modules`)
+      .set('Authorization', `Bearer ${mentor.token}`)
+      .send({ title: 'Mod remover admin' });
+    const lesson = await t.api
+      .post(`/mentor/courses/${course.id}/lessons`)
+      .set('Authorization', `Bearer ${mentor.token}`)
+      .send({
+        moduleId: module.body.id,
+        title: 'A remover admin',
+        type: 'MATERIAL',
+        text: 'leitura',
+      })
+      .expect(201);
+    await t.api
+      .delete(`/admin/courses/lessons/${lesson.body.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(204);
+    await t.api
+      .delete(`/admin/courses/lessons/${lesson.body.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(404);
+  });
   it('GET /mentor/materiais so mostra materiais dos cursos do mentor', async () => {
     const course = (
       await t.api

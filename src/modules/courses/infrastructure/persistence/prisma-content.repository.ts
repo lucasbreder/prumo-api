@@ -120,6 +120,17 @@ export class PrismaLessonRepository implements LessonReader, LessonWriter {
       throw e;
     }
   }
+  async remove(id: string): Promise<void> {
+    await this.prisma.lesson.delete({ where: { id } }).catch((e: unknown) => {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2025'
+      ) {
+        throw new NotFoundError('Aula nao encontrada');
+      }
+      throw e;
+    });
+  }
 }
 @Injectable()
 export class PrismaModuleRepository implements ModuleReader, ModuleWriter {

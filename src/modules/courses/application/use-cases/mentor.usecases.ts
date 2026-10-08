@@ -185,6 +185,16 @@ export class SendLessonForReviewUseCase {
     return { id: referencia.lesson.id, status: referencia.lesson.status };
   }
 }
+export class RemoveLessonComoMentorUseCase {
+  constructor(private readonly deps: MentorDeps) {}
+  async execute(input: { mentorId: string; lessonId: string }) {
+    const referencia = await this.deps.lessons.byId(input.lessonId);
+    if (!referencia) throw new NotFoundError('Aula nao encontrada');
+    await exigirVinculo(this.deps, input.mentorId, referencia.courseId);
+    await this.deps.lessonsWriter.remove(input.lessonId);
+    return { id: input.lessonId };
+  }
+}
 export class ListMaterialsDoMentorUseCase {
   constructor(
     private readonly deps: {

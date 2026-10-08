@@ -124,6 +124,15 @@ export class AddLessonUseCase {
     return { id: lesson.id, status: lesson.status, order };
   }
 }
+export class RemoveLessonUseCase {
+  constructor(private readonly deps: EquipeDeps) {}
+  async execute(input: { lessonId: string }) {
+    const referencia = await this.deps.lessons.byId(input.lessonId);
+    if (!referencia) throw new NotFoundError('Aula nao encontrada');
+    await this.deps.lessonsWriter.remove(input.lessonId);
+    return { id: input.lessonId };
+  }
+}
 export class ReviewLessonUseCase {
   constructor(private readonly deps: EquipeDeps) {}
   private async get(lessonId: string) {

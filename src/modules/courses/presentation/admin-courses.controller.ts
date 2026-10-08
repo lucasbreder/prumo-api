@@ -14,6 +14,7 @@ import { Roles } from '../../../shared/auth/decorators/roles.decorator.js';
 import {
   AddLessonUseCase,
   AddModuleUseCase,
+  RemoveLessonUseCase,
   ReviewLessonUseCase,
   SaveCourseUseCase,
   SaveMaterialUseCase,
@@ -67,6 +68,7 @@ export class AdminCoursesController {
     private readonly saveCourse: SaveCourseUseCase,
     private readonly addModule: AddModuleUseCase,
     private readonly addLesson: AddLessonUseCase,
+    private readonly removeLesson: RemoveLessonUseCase,
     private readonly review: ReviewLessonUseCase,
     private readonly listMatriculas: ListCourseEnrollmentsAdminUseCase,
     private readonly listAlunosDisponiveis: ListAvailableStudentsAdminUseCase,
@@ -255,6 +257,14 @@ export class AdminCoursesController {
     lessonId: string,
   ) {
     return this.review.reject(lessonId);
+  }
+  @Delete('lessons/:lessonId')
+  @HttpCode(204)
+  async removeLessonById(
+    @Param('lessonId')
+    lessonId: string,
+  ): Promise<void> {
+    await this.removeLesson.execute({ lessonId });
   }
 }
 @Controller('admin/materials')

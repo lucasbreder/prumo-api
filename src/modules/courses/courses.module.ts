@@ -69,6 +69,7 @@ import {
   AddModuleComoMentorUseCase,
   EditLessonAsMentorUseCase,
   SendLessonForReviewUseCase,
+  RemoveLessonComoMentorUseCase,
   ListCoursesDoMentorUseCase,
   ListMaterialsDoMentorUseCase,
   GetCurriculumDoMentorUseCase,
@@ -83,6 +84,7 @@ import {
   AddLessonUseCase,
   AddModuleUseCase,
   PresignUploadUseCase,
+  RemoveLessonUseCase,
   ReviewLessonUseCase,
   SaveCourseUseCase,
   SaveMaterialUseCase,
@@ -233,6 +235,7 @@ import { UploadsController } from './presentation/uploads.controller.js';
       AddLessonComoMentorUseCase,
       EditLessonAsMentorUseCase,
       SendLessonForReviewUseCase,
+      RemoveLessonComoMentorUseCase,
     ].map((cls) => ({
       provide: cls,
       inject: [
@@ -273,6 +276,7 @@ import { UploadsController } from './presentation/uploads.controller.js';
       SaveCourseUseCase,
       AddModuleUseCase,
       AddLessonUseCase,
+      RemoveLessonUseCase,
       ReviewLessonUseCase,
       SaveMaterialUseCase,
     ].map((cls) => ({

@@ -36,6 +36,7 @@ import {
   AddModuleUseCase,
   AddLessonUseCase,
   PresignUploadUseCase,
+  RemoveLessonUseCase,
   ReviewLessonUseCase,
   SaveCourseUseCase,
 } from './team.usecases.js';
@@ -505,6 +506,30 @@ describe('Escopo do mentor', () => {
     );
     expect(editada.status).toBe('IN_REVIEW');
   });
+  it('remove aula do proprio curso', async () => {
+    const { RemoveLessonComoMentorUseCase } = await import(
+      './mentor.usecases.js'
+    );
+    ctx.lessonPublicada('A1', 1);
+    await new RemoveLessonComoMentorUseCase(ctx.depsMentor).execute({
+      mentorId: mentor,
+      lessonId: 'aula-A1',
+    });
+    expect(ctx.lessons.lessons.has('aula-A1')).toBe(false);
+  });
+  it('nao remove aula de curso sem vinculo', async () => {
+    const { RemoveLessonComoMentorUseCase } = await import(
+      './mentor.usecases.js'
+    );
+    ctx.lessonPublicada('A1', 1);
+    await expect(
+      new RemoveLessonComoMentorUseCase(ctx.depsMentor).execute({
+        mentorId: intruso,
+        lessonId: 'aula-A1',
+      }),
+    ).rejects.toBeInstanceOf(AccessDeniedError);
+    expect(ctx.lessons.lessons.has('aula-A1')).toBe(true);
+  });
   it('currículo inclui módulo recém-criado mesmo sem aulas', async () => {
     const { AddModuleComoMentorUseCase } = await import('./mentor.usecases.js');
     await new AddModuleComoMentorUseCase(ctx.depsMentor).execute({
@@ -600,6 +625,18 @@ describe('Equipe (admin): curriculo, revisao e uploads', () => {
       text: 'roteiro',
     });
     expect(lesson.order).toBe(1);
+  });
+  it('equipe remove aula do curriculo', async () => {
+    ctx.lessonPublicada('A1', 1);
+    await new RemoveLessonUseCase(ctx.depsEquipe).execute({
+      lessonId: 'aula-A1',
+    });
+    expect(ctx.lessons.lessons.has('aula-A1')).toBe(false);
+    await expect(
+      new RemoveLessonUseCase(ctx.depsEquipe).execute({
+        lessonId: 'aula-inexistente',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
   it('equipe alterna status rascunho <-> publicado diretamente', async () => {
     const lesson = Lesson.create({

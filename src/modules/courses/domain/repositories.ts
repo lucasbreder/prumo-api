@@ -81,6 +81,7 @@ export interface LessonReader {
 export interface LessonWriter {
   create(lesson: Lesson, courseId: string): Promise<void>;
   save(lesson: Lesson): Promise<void>;
+  remove(id: string): Promise<void>;
 }
 export interface ModuleInput {
   id: string;
