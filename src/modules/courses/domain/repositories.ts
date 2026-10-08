@@ -210,11 +210,36 @@ export interface PresignInput {
   typeContent: string;
   expiraEmSeconds?: number;
 }
+export interface PresignPartInput {
+  chave: string;
+  uploadId: string;
+  parte: number;
+  expiraEmSeconds?: number;
+}
+export interface CompletedPart {
+  parte: number;
+  etag: string;
+}
 export interface StoragePresigner {
   presignUpload(input: PresignInput): Promise<{
     url: string;
     expiraEm: string;
   }>;
+  // Multipart upload: needed for files above S3's 5 GB single-PUT limit.
+  createMultipartUpload(input: {
+    chave: string;
+    typeContent: string;
+  }): Promise<{ uploadId: string }>;
+  presignUploadPart(input: PresignPartInput): Promise<{
+    url: string;
+    expiraEm: string;
+  }>;
+  completeMultipartUpload(input: {
+    chave: string;
+    uploadId: string;
+    partes: CompletedPart[];
+  }): Promise<void>;
+  abortMultipartUpload(input: { chave: string; uploadId: string }): Promise<void>;
   // Resolves a stored image value (S3 key, absolute/relative URL) to a
   // displayable URL: keys become short-lived signed GET URLs; the rest pass
   // through. Returns null for empty/data: values.

@@ -1,0 +1,13 @@
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "PUT", "POST", "HEAD"],
+    "AllowedOrigins": [
+      "http://localhost:7000",
+      "https://prumo.arq.br",
+      "https://www.prumo.arq.br"
+    ],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]

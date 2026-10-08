@@ -23,6 +23,7 @@ import type {
   ModuleReader,
   ModuleWriter,
   PresignInput,
+  PresignPartInput,
   ProgressReader,
   ProgressWriter,
   StoragePresigner,
@@ -314,12 +315,43 @@ export class FakeMaterialRepo implements MaterialReader, MaterialWriter {
 }
 export class FakePresigner implements StoragePresigner {
   last: PresignInput[] = [];
+  multipartCriados: { chave: string }[] = [];
+  partesConcluidas: {
+    chave: string;
+    uploadId: string;
+    partes: { parte: number; etag: string }[];
+  }[] = [];
+  aborts: { chave: string; uploadId: string }[] = [];
   async presignUpload(input: PresignInput) {
     this.last.push(input);
     return {
       url: `https://storage.test/${input.chave}?sig=1`,
       expiraEm: '2026-09-04T13:00:00.000Z',
     };
+  }
+  async createMultipartUpload(input: { chave: string; typeContent: string }) {
+    this.multipartCriados.push({ chave: input.chave });
+    return { uploadId: `upload-${this.multipartCriados.length}` };
+  }
+  async presignUploadPart(input: PresignPartInput) {
+    return {
+      url: `https://storage.test/${input.chave}?part=${input.parte}&uploadId=${input.uploadId}`,
+      expiraEm: '2026-09-04T13:00:00.000Z',
+    };
+  }
+  async completeMultipartUpload(input: {
+    chave: string;
+    uploadId: string;
+    partes: { parte: number; etag: string }[];
+  }) {
+    this.partesConcluidas.push({
+      chave: input.chave,
+      uploadId: input.uploadId,
+      partes: input.partes,
+    });
+  }
+  async abortMultipartUpload(input: { chave: string; uploadId: string }) {
+    this.aborts.push({ chave: input.chave, uploadId: input.uploadId });
   }
   async resolvePublicUrl(valor: string): Promise<string | null> {
     const v = valor.trim();

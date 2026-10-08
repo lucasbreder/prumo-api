@@ -12,6 +12,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import { PagedQueryInput } from '../../../shared/pagination/pagination.js';
 const TypesLesson = ['VIDEO', 'QUIZ', 'MATERIAL', 'TEXT'] as const;
@@ -205,4 +206,37 @@ export class PresignUploadInput {
   @IsInt()
   @Min(1)
   sizeBytes!: number;
+}
+const MAX_LESSON_UPLOAD_BYTES = 20 * 1024 * 1024 * 1024;
+export class InitiateMultipartInput {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  nameArquivo!: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(MAX_LESSON_UPLOAD_BYTES)
+  sizeBytes!: number;
+}
+export class MultipartPartInput {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  parte!: number;
+  @IsString()
+  @IsNotEmpty()
+  etag!: string;
+}
+export class CompleteMultipartInput {
+  @IsString()
+  @IsNotEmpty()
+  chave!: string;
+  @IsString()
+  @IsNotEmpty()
+  uploadId!: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MultipartPartInput)
+  partes!: MultipartPartInput[];
 }

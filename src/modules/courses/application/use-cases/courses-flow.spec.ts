@@ -35,6 +35,8 @@ import {
 import {
   AddModuleUseCase,
   AddLessonUseCase,
+  CompleteMultipartUploadUseCase,
+  InitiateMultipartUploadUseCase,
   PresignUploadUseCase,
   RemoveLessonUseCase,
   ReviewLessonUseCase,
@@ -689,6 +691,43 @@ describe('Equipe (admin): curriculo, revisao e uploads', () => {
         sizeBytes: 1,
       }),
     ).rejects.toThrow(/Formato/);
+  });
+  it('multipart de aula: divide em partes e conclui ordenado', async () => {
+    const iniciar = new InitiateMultipartUploadUseCase(ctx.depsEquipe);
+    const inicio = await iniciar.execute({
+      userId: 'mentor-1',
+      nameArquivo: 'aula longa.mp4',
+      sizeBytes: 250 * 1024 * 1024,
+    });
+    expect(inicio.chave).toContain('uploads/mentor-1');
+    expect(inicio.partSize).toBe(100 * 1024 * 1024);
+    expect(inicio.partes.map((p) => p.parte)).toEqual([1, 2, 3]);
+    expect(inicio.partes[0].url).toContain('part=1');
+    expect(ctx.presigner.multipartCriados).toHaveLength(1);
+
+    const concluir = new CompleteMultipartUploadUseCase(ctx.depsEquipe);
+    await concluir.execute({
+      chave: inicio.chave,
+      uploadId: inicio.uploadId,
+      partes: [
+        { parte: 2, etag: 'b' },
+        { parte: 1, etag: 'a' },
+      ],
+    });
+    expect(ctx.presigner.partesConcluidas[0].partes).toEqual([
+      { parte: 1, etag: 'a' },
+      { parte: 2, etag: 'b' },
+    ]);
+  });
+  it('multipart rejeita arquivo acima de 20 GB', async () => {
+    const iniciar = new InitiateMultipartUploadUseCase(ctx.depsEquipe);
+    await expect(
+      iniciar.execute({
+        userId: 'mentor-1',
+        nameArquivo: 'gigante.mp4',
+        sizeBytes: 20 * 1024 * 1024 * 1024 + 1,
+      }),
+    ).rejects.toBeInstanceOf(BusinessRuleError);
   });
 });
 describe('Conteudo textual em blocos (TEXT)', () => {

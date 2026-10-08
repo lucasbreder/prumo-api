@@ -211,6 +211,30 @@ const TypeByEXTENSAO: Record<string, string> = {
   webp: 'image/webp',
   avif: 'image/avif',
 };
+// Aulas/materiais: 20 GB via multipart (um PUT unico no S3 limita a 5 GB).
+export const MAX_LESSON_UPLOAD_BYTES = 20 * 1024 * 1024 * 1024;
+const MULTIPART_PART_BYTES = 100 * 1024 * 1024; // 100 MB por parte
+const MULTIPART_PART_TTL_SECONDS = 3600;
+const MSG_FORMATOS =
+  'Formato nao suportado (use MP4, PDF, PPTX, XLSX, DOCX, CSV, JPG, PNG, WEBP ou AVIF)';
+
+function chaveDeUpload(
+  userId: string,
+  nameArquivo: string,
+  sizeBytes: number,
+): { chave: string; typeContent: string } {
+  if (!Number.isInteger(sizeBytes) || sizeBytes <= 0) {
+    throw new BusinessRuleError('Tamanho invalido');
+  }
+  const extensao = nameArquivo.split('.').pop()?.toLowerCase() ?? '';
+  const typeContent = TypeByEXTENSAO[extensao];
+  if (!typeContent) {
+    throw new BusinessRuleError(MSG_FORMATOS);
+  }
+  const seguro = nameArquivo.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80);
+  return { chave: `uploads/${userId}/${randomUUID()}-${seguro}`, typeContent };
+}
+
 export class PresignUploadUseCase {
   constructor(
     private readonly deps: {
@@ -227,25 +251,117 @@ export class PresignUploadUseCase {
     chave: string;
     previewUrl: string | null;
   }> {
-    if (!Number.isInteger(input.sizeBytes) || input.sizeBytes <= 0) {
-      throw new BusinessRuleError('Tamanho invalido');
-    }
-    const extensao = input.nameArquivo.split('.').pop()?.toLowerCase() ?? '';
-    const typeContent = TypeByEXTENSAO[extensao];
-    if (!typeContent) {
-      throw new BusinessRuleError(
-        'Formato nao suportado (use MP4, PDF, PPTX, XLSX, DOCX, CSV, JPG, PNG, WEBP ou AVIF)',
-      );
-    }
-    const seguro = input.nameArquivo
-      .replace(/[^a-zA-Z0-9._-]/g, '_')
-      .slice(-80);
-    const chave = `uploads/${input.userId}/${randomUUID()}-${seguro}`;
+    const { chave, typeContent } = chaveDeUpload(
+      input.userId,
+      input.nameArquivo,
+      input.sizeBytes,
+    );
     const { url, expiraEm } = await this.deps.presigner.presignUpload({
       chave,
       typeContent,
     });
     const previewUrl = await this.deps.presigner.resolvePublicUrl(chave);
     return { url, expiraEm, chave, previewUrl };
+  }
+}
+
+export interface MultipartPart {
+  parte: number;
+  url: string;
+  expiraEm: string;
+}
+
+export class InitiateMultipartUploadUseCase {
+  constructor(
+    private readonly deps: {
+      presigner: StoragePresigner;
+    },
+  ) {}
+  async execute(input: {
+    userId: string;
+    nameArquivo: string;
+    sizeBytes: number;
+  }): Promise<{
+    chave: string;
+    uploadId: string;
+    previewUrl: string | null;
+    partSize: number;
+    partes: MultipartPart[];
+  }> {
+    if (input.sizeBytes > MAX_LESSON_UPLOAD_BYTES) {
+      throw new BusinessRuleError('Arquivo excede o limite de 20 GB');
+    }
+    const { chave, typeContent } = chaveDeUpload(
+      input.userId,
+      input.nameArquivo,
+      input.sizeBytes,
+    );
+    const { uploadId } = await this.deps.presigner.createMultipartUpload({
+      chave,
+      typeContent,
+    });
+    const totalPartes = Math.ceil(input.sizeBytes / MULTIPART_PART_BYTES);
+    const partes: MultipartPart[] = [];
+    for (let parte = 1; parte <= totalPartes; parte++) {
+      const { url, expiraEm } = await this.deps.presigner.presignUploadPart({
+        chave,
+        uploadId,
+        parte,
+        expiraEmSeconds: MULTIPART_PART_TTL_SECONDS,
+      });
+      partes.push({ parte, url, expiraEm });
+    }
+    const previewUrl = await this.deps.presigner.resolvePublicUrl(chave);
+    return {
+      chave,
+      uploadId,
+      previewUrl,
+      partSize: MULTIPART_PART_BYTES,
+      partes,
+    };
+  }
+}
+
+export class CompleteMultipartUploadUseCase {
+  constructor(
+    private readonly deps: {
+      presigner: StoragePresigner;
+    },
+  ) {}
+  async execute(input: {
+    chave: string;
+    uploadId: string;
+    partes: { parte: number; etag: string }[];
+  }): Promise<{ chave: string }> {
+    if (!input.chave || !input.uploadId) {
+      throw new BusinessRuleError('Upload invalido');
+    }
+    if (!Array.isArray(input.partes) || input.partes.length === 0) {
+      throw new BusinessRuleError('Partes nao informadas');
+    }
+    const partes = [...input.partes].sort((a, b) => a.parte - b.parte);
+    await this.deps.presigner.completeMultipartUpload({
+      chave: input.chave,
+      uploadId: input.uploadId,
+      partes,
+    });
+    return { chave: input.chave };
+  }
+}
+
+export class AbortMultipartUploadUseCase {
+  constructor(
+    private readonly deps: {
+      presigner: StoragePresigner;
+    },
+  ) {}
+  async execute(input: {
+    chave: string;
+    uploadId: string;
+  }): Promise<{ ok: true }> {
+    if (input.chave && input.uploadId) {
+      await this.deps.presigner.abortMultipartUpload(input);
+    }
+    return { ok: true };
   }
 }

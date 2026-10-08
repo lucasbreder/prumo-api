@@ -313,6 +313,34 @@ describe('Area do mentor (e2e)', () => {
       )
       .expect(403);
   });
+  it('upload multipart de aula: valida limite, formato e papel', async () => {
+    const aluno = await createUser(t.prisma, { email: 'aluno-mp@test.dev' });
+    const alunoToken = await login(t.api, aluno.email);
+    // aluno não pode iniciar upload
+    await t.api
+      .post('/uploads/multipart')
+      .set('Authorization', `Bearer ${alunoToken}`)
+      .send({ nameArquivo: 'a.mp4', sizeBytes: 100 })
+      .expect(403);
+    // acima de 20 GB é rejeitado no DTO
+    await t.api
+      .post('/uploads/multipart')
+      .set('Authorization', `Bearer ${mentor.token}`)
+      .send({ nameArquivo: 'gigante.mp4', sizeBytes: 21 * 1024 * 1024 * 1024 })
+      .expect(400);
+    // formato não suportado
+    await t.api
+      .post('/uploads/multipart')
+      .set('Authorization', `Bearer ${mentor.token}`)
+      .send({ nameArquivo: 'virus.exe', sizeBytes: 100 })
+      .expect(422);
+    // complete sem partes
+    await t.api
+      .post('/uploads/multipart/complete')
+      .set('Authorization', `Bearer ${mentor.token}`)
+      .send({ chave: 'k', uploadId: 'u', partes: [] })
+      .expect(422);
+  });
   it('upload assinado aceita somente formatos permitidos', async () => {
     await t.api
       .post('/uploads/presign')

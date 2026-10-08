@@ -81,8 +81,11 @@ import {
   UnenrollStudentAdminUseCase,
 } from './application/use-cases/admin-enrollments.usecases.js';
 import {
+  AbortMultipartUploadUseCase,
   AddLessonUseCase,
   AddModuleUseCase,
+  CompleteMultipartUploadUseCase,
+  InitiateMultipartUploadUseCase,
   PresignUploadUseCase,
   RemoveLessonUseCase,
   ReviewLessonUseCase,
@@ -316,12 +319,16 @@ import { UploadsController } from './presentation/uploads.controller.js';
       useFactory: (links: MentorLinkReader, materials: MaterialReader) =>
         new ListMaterialsDoMentorUseCase({ links, materials }),
     },
-    {
-      provide: PresignUploadUseCase,
+    ...[
+      PresignUploadUseCase,
+      InitiateMultipartUploadUseCase,
+      CompleteMultipartUploadUseCase,
+      AbortMultipartUploadUseCase,
+    ].map((cls) => ({
+      provide: cls,
       inject: [STORAGE_PRESIGNER],
-      useFactory: (presigner: StoragePresigner) =>
-        new PresignUploadUseCase({ presigner }),
-    },
+      useFactory: (presigner: StoragePresigner) => new cls({ presigner }),
+    })),
   ],
   exports: [COURSE_READER, MENTOR_LINK_READER],
 })
