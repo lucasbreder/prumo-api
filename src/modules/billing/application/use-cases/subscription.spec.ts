@@ -252,4 +252,26 @@ describe('Ajuste administrativo de plano', () => {
     expect(revoked.status).toBe('EXPIRED');
     expect(invoices.invoices).toHaveLength(1);
   });
+  it('admin ativa plano de Equipes (sem preco) liberando acesso com snapshot 0', async () => {
+    const plans = new FakePlanRepo();
+    const subscriptions = new FakeSubscriptionRepo();
+    const invoices = new FakeInvoiceRepo();
+    const clock = new ClockFixo();
+    plans.plans.set('plano-equipes', planTeam());
+    const usecase = new AjustarPlanAdminUseCase({
+      plans,
+      subscriptions,
+      invoices,
+      clock,
+    });
+    const output = await usecase.execute({
+      userId: 'u1',
+      planId: 'plano-equipes',
+    });
+    expect(output).toEqual({ status: 'ACTIVE', planName: 'Equipes' });
+    const sub = subscriptions.byUserId.get('u1');
+    expect(sub?.status).toBe('ACTIVE');
+    expect(sub?.priceCents).toBe(0);
+    expect(sub?.hasAccessOn(clock.now())).toBe(true);
+  });
 });
