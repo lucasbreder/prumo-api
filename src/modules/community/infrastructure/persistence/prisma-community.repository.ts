@@ -64,6 +64,7 @@ export class PrismaThreadRepository implements ThreadReader, ThreadWriter {
     page: number;
     perPage: number;
     userId?: string;
+    authorId?: string;
     replyStatuses?: Thread['status'][];
   }): Promise<{
     threads: ThreadListada[];
@@ -72,6 +73,7 @@ export class PrismaThreadRepository implements ThreadReader, ThreadWriter {
     const onde: Prisma.ThreadWhereInput = {
       ...(filter.status ? { status: filter.status } : {}),
       ...(filter.category ? { category: filter.category } : {}),
+      ...(filter.authorId ? { authorId: filter.authorId } : {}),
     };
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.thread.count({ where: onde }),

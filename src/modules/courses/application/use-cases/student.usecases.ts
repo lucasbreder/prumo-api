@@ -124,6 +124,16 @@ export class GetMeuCourseUseCase {
                 this.deps.presigner.resolvePublicUrl(k),
               )
             : null,
+          videoUrl: publicada(a)
+            ? await resolveAssetUrl(a.videoUrl, (k) =>
+                this.deps.presigner.resolvePublicUrl(k),
+              )
+            : null,
+          materialUrl: publicada(a)
+            ? await resolveAssetUrl(a.materialUrl, (k) =>
+                this.deps.presigner.resolvePublicUrl(k),
+              )
+            : null,
           text: publicada(a) ? a.text : null,
           blocks: publicada(a)
             ? await resolveBlockImages(a.blocks, (k) =>

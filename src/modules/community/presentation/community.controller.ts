@@ -96,10 +96,13 @@ export class CommunityController {
     @Query()
     query: ListThreadsQuery,
   ) {
+    // Q&A: o aluno só enxerga as próprias perguntas (e as respostas publicadas
+    // pelo admin), independentemente da situação. Ninguém vê as perguntas dos
+    // outros alunos.
     return this.listThreads.execute({
       ...query,
+      authorId: user.id,
       userId: user.id,
-      status: query.status ?? 'PUBLISHED',
       replyStatuses: ['PUBLISHED'],
     });
   }
@@ -168,6 +171,7 @@ export class AdminCommunityController {
   constructor(
     private readonly listThreads: ListThreadsUseCase,
     private readonly moderate: ModerateThreadUseCase,
+    private readonly responder: ResponderThreadUseCase,
     private readonly listReportsUseCase: ListReportsUseCase,
     private readonly resolveReport: ResolveReportUseCase,
     private readonly reportsKpisUseCase: GetReportsKpisUseCase,
@@ -182,6 +186,22 @@ export class AdminCommunityController {
     return this.listThreads.execute({
       ...query,
       replyStatuses: ['PUBLISHED', 'PENDING', 'HIDDEN'],
+    });
+  }
+  @Post('community/:id/replies')
+  async reply(
+    @CurrentUser()
+    user: AuthUser,
+    @Param('id')
+    id: string,
+    @Body()
+    input: ReplyInput,
+  ) {
+    return this.responder.execute({
+      authorId: user.id,
+      authorRole: user.role,
+      threadId: id,
+      content: input.content,
     });
   }
   @Get('community/rules')

@@ -131,6 +131,10 @@ model User {
   bio             String?
   // Private-S3 object key for the user's own avatar (Opção A: banco guarda só a chave).
   avatarKey       String?
+  // Optional contact/social links the student may volunteer (perfil).
+  whatsapp        String?
+  instagram       String?
+  website         String?
   areas           String[] @default([])
   mentorFeatured  Boolean  @default(false)
   mentorStatus    MentorProfileStatus @default(PENDING)

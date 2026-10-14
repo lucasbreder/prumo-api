@@ -33,6 +33,7 @@ export interface ThreadReader {
     page: number;
     perPage: number;
     userId?: string;
+    authorId?: string;
     replyStatuses?: ThreadStatus[];
   }): Promise<{
     threads: ThreadListada[];

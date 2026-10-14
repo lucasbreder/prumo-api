@@ -14,6 +14,9 @@ export interface UserProps {
   appleId?: string | null;
   bio?: string | null;
   avatarKey?: string | null;
+  whatsapp?: string | null;
+  instagram?: string | null;
+  website?: string | null;
   areas: string[];
   mentorFeatured: boolean;
   mentorStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -118,6 +121,15 @@ export class User {
   get avatarKey(): string | null {
     return this.props.avatarKey ?? null;
   }
+  get whatsapp(): string | null {
+    return this.props.whatsapp ?? null;
+  }
+  get instagram(): string | null {
+    return this.props.instagram ?? null;
+  }
+  get website(): string | null {
+    return this.props.website ?? null;
+  }
   get areas(): string[] {
     return [...this.props.areas];
   }
@@ -172,6 +184,18 @@ export class User {
   }
   setAvatarKey(key: string | null): void {
     this.props.avatarKey = key;
+  }
+  updateContact(data: {
+    whatsapp?: string | null;
+    instagram?: string | null;
+    website?: string | null;
+  }): void {
+    if (data.whatsapp !== undefined)
+      this.props.whatsapp = data.whatsapp?.trim() || null;
+    if (data.instagram !== undefined)
+      this.props.instagram = data.instagram?.trim() || null;
+    if (data.website !== undefined)
+      this.props.website = data.website?.trim() || null;
   }
   definirRole(role: Role): void {
     this.props.role = role;

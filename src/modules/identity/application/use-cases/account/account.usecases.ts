@@ -42,6 +42,9 @@ export class UpdateAccountUseCase {
     name?: string;
     bio?: string;
     avatarKey?: string | null;
+    whatsapp?: string | null;
+    instagram?: string | null;
+    website?: string | null;
   }): Promise<import('../../../domain/entities/user.entity.js').User> {
     const user = await this.deps.users.byId(input.userId);
     if (!user) throw new NotFoundError('Conta nao encontrada');
@@ -51,6 +54,17 @@ export class UpdateAccountUseCase {
         throw new BusinessRuleError('Chave de imagem de perfil invalida');
       }
       user.setAvatarKey(input.avatarKey);
+    }
+    if (
+      input.whatsapp !== undefined ||
+      input.instagram !== undefined ||
+      input.website !== undefined
+    ) {
+      user.updateContact({
+        whatsapp: input.whatsapp,
+        instagram: input.instagram,
+        website: input.website,
+      });
     }
     await this.deps.users.save(user);
     return user;

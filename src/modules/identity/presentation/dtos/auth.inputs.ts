@@ -64,6 +64,18 @@ export class UpdateAccountInput {
   @IsString()
   @MaxLength(200)
   avatarKey?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  whatsapp?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  instagram?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  website?: string;
 }
 export class AvatarPresignInput {
   @IsString()

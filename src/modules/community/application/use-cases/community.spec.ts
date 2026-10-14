@@ -118,6 +118,24 @@ describe('Comunidade', () => {
       }),
     ).rejects.toBeInstanceOf(AccessDeniedError);
   });
+  it('admin responde a uma pergunta pendente (Q&A)', async () => {
+    const t = Thread.create({
+      id: 'q-1',
+      authorId: 'a1',
+      category: 'duvidas',
+      content: 'Como precificar?',
+      publicadaDirect: false,
+    });
+    threads.threads.set(t.id, t);
+    const responder = new ResponderThreadUseCase(deps as never);
+    const out = await responder.execute({
+      authorId: 'ad1',
+      authorRole: 'ADMIN',
+      threadId: t.id,
+      content: 'Pela hora técnica.',
+    });
+    expect(out.replyCount).toBe(1);
+  });
   it('moderacao aprova e oculta', async () => {
     const t = Thread.create({
       id: 'pend-1',

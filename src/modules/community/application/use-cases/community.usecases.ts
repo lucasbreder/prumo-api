@@ -57,6 +57,7 @@ export class ListThreadsUseCase {
     page: number;
     perPage: number;
     userId?: string;
+    authorId?: string;
     replyStatuses?: Thread['status'][];
   }) {
     const { threads, total } = await this.deps.threads.list(filter);
@@ -131,7 +132,12 @@ export class ResponderThreadUseCase {
   }) {
     const thread = await this.deps.threads.byId(input.threadId);
     if (!thread) throw new NotFoundError('Publicacao nao encontrada');
-    if (!thread.aceitaReply) {
+    // Q&A: o admin responde a qualquer pergunta (mesmo pendente); demais papeis
+    // só respondem a publicacoes ja publicadas.
+    const podeResponder =
+      thread.status !== 'HIDDEN' &&
+      (thread.aceitaReply || input.authorRole === 'ADMIN');
+    if (!podeResponder) {
       throw new AccessDeniedError('Esta discussao esta fechada para respostas');
     }
     await this.deps.replies.create({

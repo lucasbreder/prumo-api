@@ -16,6 +16,9 @@ export interface UserRow {
   appleId: string | null;
   bio: string | null;
   avatarKey: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  website: string | null;
   areas: string[];
   mentorFeatured: boolean;
   mentorStatus: MentorProfileStatus;
@@ -36,6 +39,9 @@ export function rowForUser(row: UserRow): User {
     appleId: row.appleId,
     bio: row.bio,
     avatarKey: row.avatarKey,
+    whatsapp: row.whatsapp,
+    instagram: row.instagram,
+    website: row.website,
     areas: row.areas,
     mentorFeatured: row.mentorFeatured,
     mentorStatus: row.mentorStatus as 'PENDING' | 'APPROVED' | 'REJECTED',
@@ -56,6 +62,9 @@ export function userForEscritura(user: User) {
     appleId: user.appleId,
     bio: user.bio,
     avatarKey: user.avatarKey,
+    whatsapp: user.whatsapp,
+    instagram: user.instagram,
+    website: user.website,
     areas: user.areas,
     mentorFeatured: user.mentorFeatured,
     mentorStatus: user.mentorStatus as MentorProfileStatus,

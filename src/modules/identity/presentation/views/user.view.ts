@@ -6,6 +6,9 @@ export interface UserView {
   role: string;
   bio: string | null;
   avatarUrl: string | null;
+  whatsapp: string | null;
+  instagram: string | null;
+  website: string | null;
   active: boolean;
   lastAccessAt: string | null;
 }
@@ -20,6 +23,9 @@ export function userForView(
     role: user.role,
     bio: user.bio,
     avatarUrl,
+    whatsapp: user.whatsapp,
+    instagram: user.instagram,
+    website: user.website,
     active: user.active,
     lastAccessAt: user.lastAccessAt?.toISOString() ?? null,
   };
