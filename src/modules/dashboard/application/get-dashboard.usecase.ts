@@ -6,13 +6,14 @@ export class GetDashboardUseCase {
       reader: DashboardReader;
     },
   ) {}
-  async execute(input: { current: Date }) {
+  async execute(input: { current: Date; from: Date; to: Date }) {
     const start30d = new Date(input.current.getTime() - 30 * Day);
     const reader = this.deps.reader;
     const [
       studentsActive,
       mrrCents,
-      newEnrollments30d,
+      billing,
+      newEnrollments,
       ended30d,
       enrollmentsByMonth,
       revenue,
@@ -21,7 +22,8 @@ export class GetDashboardUseCase {
     ] = await Promise.all([
       reader.studentsActiveWithSubscription(),
       reader.mrrCents(),
-      reader.enrollmentsSince(start30d),
+      reader.billingSummary(input.from, input.to, input.current),
+      reader.enrollmentsBetween(input.from, input.to),
       reader.endedSubscriptionsSince(start30d),
       reader.enrollmentsByMonth(6, input.current),
       reader.revenueByPlan(),
@@ -41,12 +43,19 @@ export class GetDashboardUseCase {
           : Math.floor((r.amountCents / totalRevenue) * 100),
     }));
     return {
+      period: {
+        from: input.from.toISOString(),
+        to: input.to.toISOString(),
+      },
       kpis: {
         studentsActive,
         mrrCents,
-        newEnrollments30d,
+        contractedRevenueCents: billing.contractedCents,
+        recurringRevenueCents: billing.recurringCents,
+        newEnrollments,
         churn30dPercent,
       },
+      billingSeries: billing.series,
       enrollmentsByMonth,
       revenueByPlan,
       popularCourses,

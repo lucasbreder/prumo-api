@@ -65,7 +65,11 @@ describe('Dashboard admin (e2e)', () => {
       .expect(200);
     expect(output.body.kpis.mrrCents).toBe(9700 * 2);
     expect(output.body.kpis.studentsActive).toBe(2);
-    expect(output.body.kpis.newEnrollments30d).toBe(2);
+    expect(output.body.kpis.newEnrollments).toBe(2);
+    // 3 assinaturas de 9700 iniciadas no ano (2 ativas + 1 cancelada do churn).
+    expect(output.body.kpis.contractedRevenueCents).toBe(9700 * 3);
+    expect(output.body.kpis.recurringRevenueCents).toBeGreaterThan(0);
+    expect(output.body.billingSeries.length).toBe(12);
     expect(output.body.kpis.churn30dPercent).toBeGreaterThanOrEqual(20);
     expect(output.body.revenueByPlan[0]).toMatchObject({
       plan: 'Mensal',

@@ -13,9 +13,12 @@ export class Cents {
     }
     return new Cents(cents);
   }
-  static mrr(priceCents: number | null, _ciclo: BillingCycle): Cents {
+  static mrr(priceCents: number | null, ciclo: BillingCycle): Cents {
     if (priceCents === null) return new Cents(0);
-    return Cents.de(priceCents);
+    // Planos anuais guardam o valor do ano -> equivalente mensal.
+    return Cents.de(
+      ciclo === 'YEARLY' ? Math.round(priceCents / 12) : priceCents,
+    );
   }
   static creditoProrrateado(
     precoCentsMonthly: number,
@@ -25,14 +28,9 @@ export class Cents {
     const days = Math.max(0, Math.min(daysRestantes, daysDoBillingCycle));
     return Math.round((precoCentsMonthly * days) / daysDoBillingCycle);
   }
-  static valueDoBillingCycle(priceCents: number, cycle: BillingCycle): number {
-    switch (cycle) {
-      case 'MONTHLY':
-      case 'TEAM':
-        return priceCents;
-      case 'YEARLY':
-        // 2 months gratis: cobra 10x o preco monthly by ano.
-        return priceCents * 10;
-    }
+  static valueDoBillingCycle(priceCents: number, _cycle: BillingCycle): number {
+    // `priceCents` e o valor cobrado no ciclo do plano (mensal = mes, anual =
+    // ano). Nao ha multiplicacao: o valor cobrado e o proprio preco do plano.
+    return priceCents;
   }
 }

@@ -111,7 +111,7 @@ describe('Checkout e assinatura', () => {
     );
     expect(payment.charge).toMatchObject({
       userId: 'u1',
-      amountCents: 79000, // ciclo anual = 10x o preco mensal
+      amountCents: 7900, // valor do ciclo anual = preco do plano
     });
     expect(events[0].name).toBe('billing.assinatura_ativada');
   });
@@ -216,7 +216,7 @@ describe('Checkout e assinatura', () => {
       planId: 'plano-anual',
     });
     expect(output.creditCents).toBe(Math.round((9700 * 16) / 31));
-    expect(output.chargedCents).toBe(79000 - output.creditCents);
+    expect(output.chargedCents).toBe(7900 - output.creditCents);
     expect(payment.charge?.amountCents).toBe(output.chargedCents);
     expect(invoices.invoices).toHaveLength(2);
     expect(invoices.invoices[1].amountCents).toBe(output.chargedCents);
